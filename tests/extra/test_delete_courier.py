@@ -5,9 +5,8 @@ from api.courier_api import CourierAPI
 from helpers import CourierHelper
 
 
-@allure.feature("Удаление курьера (дополнительное задание)")
+@allure.feature("Удаление курьера")
 class TestDeleteCourier:
-
     @allure.title("Неуспешный запрос возвращает ошибку")
     def test_delete_courier_fails_without_id(self):
         response = CourierAPI.delete_courier("")
@@ -16,8 +15,17 @@ class TestDeleteCourier:
 
     @allure.title("Успешный запрос возвращает {{ok:true}}")
     def test_delete_courier_success(self):
-        login, password, first_name = CourierHelper.register_new_courier_and_return_login_password()
-        assert login is not None
+        login = CourierHelper.generate_unique_login()
+        password = CourierHelper.generate_random_string(10)
+        first_name = CourierHelper.generate_random_string(10)
+
+        create_payload = {
+            "login": login,
+            "password": password,
+            "firstName": first_name,
+        }
+        create_response = CourierAPI.create_courier(create_payload)
+        assert create_response.status_code == 201
 
         login_response = CourierAPI.login_courier({"login": login, "password": password})
         courier_id = login_response.json().get("id")
@@ -28,17 +36,14 @@ class TestDeleteCourier:
 
     @allure.title("Запрос без id возвращает ошибку")
     def test_delete_courier_without_id(self):
-        response = CourierAPI.delete_courier(None)
-        
-        if response.status_code == 500:
-            pytest.xfail("Известная проблема API: сервер возвращает 500 вместо 400")
-        
-        assert response.status_code in [400, 404]
+        response = CourierAPI.delete_courier("")
+        assert response.status_code == 400, f"Ожидался 400, получен {response.status_code}"
 
     @allure.title("Запрос с несуществующим id возвращает ошибку")
     def test_delete_courier_nonexistent_id(self):
         response = CourierAPI.delete_courier(999999)
         assert response.status_code == 404
-    
-        assert "message" in response.json()
-        assert "Курьера с таким id нет" in response.text or "Курьера с таким id не существует" in response.text
+
+        response_data = response.json()
+        assert "message" in response_data
+        assert "Курьера с таким id нет" in response_data.get("message", "")

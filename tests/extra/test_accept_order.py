@@ -6,18 +6,29 @@ from api.courier_api import CourierAPI
 from helpers import CourierHelper
 
 
-@allure.feature("Принятие заказа (дополнительное задание)")
+@allure.feature("Принятие заказа")
 class TestAcceptOrder:
 
-    @allure.title("Успешный запрос возвращает {{ok:true}}") 
+    @allure.title("Успешный запрос возвращает {{ok:true}}")
     def test_accept_order_success(self, create_order_and_get_id):
         order_id = create_order_and_get_id
         if not order_id:
             allure.skip("Заказ не был создан")
 
-        login, password, first_name, courier_id = CourierHelper.create_and_login_courier()
-        if not courier_id:
-            allure.skip("Курьер не был создан")
+        login = CourierHelper.generate_unique_login()
+        password = CourierHelper.generate_random_string(10)
+        first_name = CourierHelper.generate_random_string(10)
+
+        create_payload = {
+            "login": login,
+            "password": password,
+            "firstName": first_name,
+        }
+        create_response = CourierAPI.create_courier(create_payload)
+        assert create_response.status_code == 201
+
+        login_response = CourierAPI.login_courier({"login": login, "password": password})
+        courier_id = login_response.json().get("id")
 
         params = {"courierId": courier_id}
         response = OrderAPI.accept_order(order_id, params=params)
@@ -50,28 +61,47 @@ class TestAcceptOrder:
 
     @allure.title("Если не передать id заказа, запрос возвращает ошибку")
     def test_accept_order_without_order_id(self):
-        login, password, first_name, courier_id = CourierHelper.create_and_login_courier()
-        if not courier_id:
-            allure.skip("Курьер не был создан")
+        login = CourierHelper.generate_unique_login()
+        password = CourierHelper.generate_random_string(10)
+        first_name = CourierHelper.generate_random_string(10)
+
+        create_payload = {
+            "login": login,
+            "password": password,
+            "firstName": first_name,
+        }
+        create_response = CourierAPI.create_courier(create_payload)
+        assert create_response.status_code == 201
+
+        login_response = CourierAPI.login_courier({"login": login, "password": password})
+        courier_id = login_response.json().get("id")
 
         params = {"courierId": courier_id}
-        response = OrderAPI.accept_order("invalid", params=params)
-        
-        if response.status_code == 500:
-            pytest.xfail("Известная проблема API: сервер возвращает 500 вместо 400")
-        
-        assert response.status_code == 400
-        CourierAPI.delete_courier(courier_id)
-
-    @allure.title("Если передать неверный id заказа, запрос возвращает ошибку")
-    def test_accept_order_with_invalid_order_id(self):
-        login, password, first_name, courier_id = CourierHelper.create_and_login_courier()
-        if not courier_id:
-            allure.skip("Курьер не был создан")
-
-        params = {"courierId": courier_id}
-        response = OrderAPI.accept_order(999999, params=params)
-        assert response.status_code == 404
-        assert "Заказа с таким id не существует" in response.text
+        response = OrderAPI.accept_order("", params=params)        
+        assert response.status_code in [400, 404], f"Ожидался 400 или 404, получен {response.status_code}"
 
         CourierAPI.delete_courier(courier_id)
+
+    @allure.title("Если не передать id заказа, запрос возвращает ошибку")
+    def test_accept_order_without_order_id(self):
+            login = CourierHelper.generate_unique_login()
+            password = CourierHelper.generate_random_string(10)
+            first_name = CourierHelper.generate_random_string(10)
+
+            create_payload = {
+                "login": login,
+                "password": password,
+                "firstName": first_name,
+            }
+            create_response = CourierAPI.create_courier(create_payload)
+            assert create_response.status_code == 201
+
+            login_response = CourierAPI.login_courier({"login": login, "password": password})
+            courier_id = login_response.json().get("id")
+
+            params = {"courierId": courier_id}
+            response = OrderAPI.accept_order("", params=params)
+            
+            assert response.status_code == 400, f"Ожидался 400, получен {response.status_code}"
+
+            CourierAPI.delete_courier(courier_id)

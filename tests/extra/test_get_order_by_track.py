@@ -1,11 +1,9 @@
 import allure
-
 from api.order_api import OrderAPI
 
 
-@allure.feature("Получение заказа по его номеру (дополнительное задание)")
+@allure.feature("Получение заказа по его номеру")
 class TestGetOrderByTrack:
-
     @allure.title("Успешный запрос возвращает объект с заказом")
     def test_get_order_by_track_success(self, create_order_and_return_track):
         track = create_order_and_return_track

@@ -1,8 +1,9 @@
 import requests
+from config import BASE_URL
 
 
 class BaseAPI:
-    BASE_URL = "https://qa-scooter.praktikum-services.ru"
+    BASE_URL = BASE_URL
 
     @staticmethod
     def _make_request(method, endpoint, **kwargs):

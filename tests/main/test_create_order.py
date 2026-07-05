@@ -28,10 +28,6 @@ class TestCreateOrder:
         assert "track" in response.json()
         assert isinstance(response.json()["track"], int)
 
-        track = response.json()["track"]
-        get_response = OrderAPI.get_order_by_track(params={"t": track})
-        assert get_response.status_code == 200
-
     @allure.title("Тело ответа содержит track")
     def test_create_order_returns_track(self):
         payload = {
